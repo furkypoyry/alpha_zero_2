@@ -85,7 +85,7 @@ flags.DEFINE_bool(
 )
 flags.DEFINE_bool('compress_data', False, 'Compress state when saving in replay buffer, default off.')
 
-flags.DEFINE_integer('num_actors',16, 'Number of self-play actor processes.')
+flags.DEFINE_integer('num_actors', 25, 'Number of self-play actor processes.')
 flags.DEFINE_integer(
     'num_simulations',
     380,
@@ -107,6 +107,16 @@ flags.DEFINE_float(
     1.25,
     'Exploration constants balancing priors vs. search values. Original paper use 1.25',
 )
+
+# Entropy-Guided MCTS lambda (0.0 disables the IG term)
+flags.DEFINE_float(
+    'eg_lambda',
+    0.0,
+    'Weight for entropy-guided IG(s,a) bonus during MCTS selection; set 0.0 to disable.',
+)
+
+# Information Gain loss weight (training-time auxiliary loss)
+flags.DEFINE_float('ig_alpha', 0.0, 'Weight for information gain loss term (0.0 disables).')
 
 flags.DEFINE_integer(
     'warm_up_steps',
@@ -171,7 +181,7 @@ flags.register_multi_flags_validator(
 FLAGS(sys.argv)
 
 from alpha_zero.envs.gomoku import GomokuEnv
-from alpha_zero.core.pipeline import (
+from alpha_zero.core.pipeline_eg import (
     run_learner_loop,
     run_evaluator_loop,
     run_selfplay_actor_loop,
@@ -179,7 +189,7 @@ from alpha_zero.core.pipeline import (
     maybe_create_dir,
 )
 from alpha_zero.core.network import AlphaZeroNet
-from alpha_zero.core.replay import UniformReplay
+from alpha_zero.core.replay_eg import UniformReplay
 from alpha_zero.utils.util import extract_args_from_flags_dict, create_logger
 
 
@@ -267,6 +277,7 @@ def main():
                 FLAGS.num_parallel,
                 FLAGS.c_puct_base,
                 FLAGS.c_puct_init,
+                FLAGS.eg_lambda,
                 FLAGS.default_rating,
                 FLAGS.logs_dir,
                 FLAGS.save_sgf_dir,
@@ -295,6 +306,7 @@ def main():
                     FLAGS.num_parallel,
                     FLAGS.c_puct_base,
                     FLAGS.c_puct_init,
+                    FLAGS.eg_lambda,
                     FLAGS.warm_up_steps,
                     FLAGS.check_resign_after_steps,
                     FLAGS.disable_resign_ratio,
@@ -323,6 +335,7 @@ def main():
             logger=logger,
             argument_data=FLAGS.argument_data,
             batch_size=FLAGS.batch_size,
+            ig_alpha=FLAGS.ig_alpha,
             init_resign_threshold=FLAGS.init_resign_threshold,
             disable_resign_ratio=FLAGS.disable_resign_ratio,
             target_fp_rate=FLAGS.target_fp_rate,
