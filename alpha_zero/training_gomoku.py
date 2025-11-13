@@ -85,7 +85,7 @@ flags.DEFINE_bool(
 )
 flags.DEFINE_bool('compress_data', False, 'Compress state when saving in replay buffer, default off.')
 
-flags.DEFINE_integer('num_actors',16, 'Number of self-play actor processes.')
+flags.DEFINE_integer('num_actors',25, 'Number of self-play actor processes.')
 flags.DEFINE_integer(
     'num_simulations',
     380,
